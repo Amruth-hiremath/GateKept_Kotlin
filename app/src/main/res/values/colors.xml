@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <color name="bg_login">#021024</color>
+    <color name="bg_dashboard_vault">#0A192F</color>
+    <color name="bg_search_results">#101822</color>
+
+    <color name="gatekept_primary_bright">#C1E8FF</color>
+    <color name="text_primary">#7DA0CA</color>
+    <color name="text_secondary_80">#CC7DA0CA</color> <color name="text_archive_60">#997D9FCA</color> <color name="text_privacy_50">#807D9FCA</color> <color name="text_signup_30">#4D7D9FCA</color> <color name="icon_primary">#7D9FCA</color>
+
+    <color name="glass_button_body">#4D021024</color> <color name="glass_button_stroke">#807DA0CA</color> <color name="button_glow_effect">#1A7D9FCA</color> <color name="nav_body_85">#D90D131C</color> <color name="nav_stroke_08">#14FFFFFF</color> <color name="shadow_panel_body">#66101822</color> <color name="shadow_panel_stroke_blue">#4D2B82EE</color> <color name="shadow_panel_stroke_light">#4D7DA0CA</color> <color name="blob_animated_solid">#052659</color>
+    <color name="overlay_blur_dark_80">#CC052659</color> <color name="overlay_blur_indigo_20">#33312E81</color> <color name="overlay_blur_blue_20">#332B82EE</color> <color name="overlay_blur_light_20">#337D9FCA</color> <color name="overlay_blur_blue_10">#1A2B82EE</color> <color name="overlay_blur_light_10">#1A7DA0CA</color>
+
+    <color name="glass_nav_background">#E6101822</color> <color name="glass_nav_stroke">#14FFFFFF</color> <color name="glowing_blue_center">#7DA0CA</color>
+
+</resources>

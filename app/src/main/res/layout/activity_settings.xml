@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/extra_bg"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:layout_marginBottom="32dp"
+        android:layout_marginTop="20dp"
+        tools:ignore="UseCompoundDrawables">
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:contentDescription="@string/upvote"
+            android:rotation="-90"
+            android:src="@drawable/ic_upvote"
+            app:tint="#FFFFFF" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="@string/settings"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/community"
+        android:textColor="#8B9EB7"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="16dp"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnMyBounties"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:text="@string/track_active_bounties"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        app:icon="@drawable/ic_search"
+        app:iconTint="#4CA6FF"
+        android:gravity="start|center_vertical" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnRequestFeature"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:text="@string/request_a_feature"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        app:icon="@drawable/ic_add"
+        app:iconTint="#4CA6FF"
+        android:gravity="start|center_vertical" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnFeedback"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:text="@string/submit_feedback"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        app:icon="@drawable/ic_comment"
+        app:iconTint="#4CA6FF"
+        android:gravity="start|center_vertical" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/about_amp_legal"
+        android:textColor="#8B9EB7"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.1"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="16dp"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnPrivacy"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:text="@string/privacy_policy"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        app:icon="@drawable/ic_privacy"
+        app:iconTint="#8B9EB7"
+        android:gravity="start|center_vertical" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnTerms"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:text="@string/terms_of_service"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        app:icon="@drawable/ic_terms"
+        app:iconTint="#8B9EB7"
+        android:gravity="start|center_vertical" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnHelpSupport"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:text="@string/help_amp_support"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        app:icon="@drawable/ic_help"
+        app:iconTint="#8B9EB7"
+        android:gravity="start|center_vertical" />
+
+    <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnLogout"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_marginBottom="24dp"
+        android:text="@string/sign_out"
+        android:textColor="#FF6B6B"
+        app:icon="@drawable/ic_logout"
+        app:iconTint="#FF6B6B"
+        app:iconGravity="textStart"
+        app:strokeColor="#FF6B6B"
+        app:cornerRadius="16dp" />
+</LinearLayout>
