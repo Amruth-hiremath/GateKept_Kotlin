@@ -21,6 +21,13 @@ import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import android.os.Handler
+import android.os.Looper
 
 class SearchFragment : Fragment() {
 
@@ -47,6 +54,12 @@ class SearchFragment : Fragment() {
     private var currentExam = "All Exams"
 
     private lateinit var db: FirebaseFirestore
+
+    private lateinit var semanticEmbedder: SemanticEmbedder
+    private lateinit var searchRepository: SemanticSearchRepository
+
+    private val searchHandler = Handler(Looper.getMainLooper())
+    private var searchRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,9 +99,41 @@ class SearchFragment : Fragment() {
 
         setupDropdowns()
 
+        semanticEmbedder = SemanticEmbedder(requireContext())
+
+        searchRepository = SemanticSearchRepository(
+            firestore = db,
+            cache = EmbeddingCache(requireContext()),
+            sharedPrefs = requireContext()
+                .getSharedPreferences(
+                    "GateKeptSearch",
+                    Context.MODE_PRIVATE
+                )
+        )
+
+        viewLifecycleOwner.lifecycleScope.launch {
+
+            withContext(Dispatchers.IO) {
+                searchRepository.initializeSearch()
+            }
+        }
+
         etSearchQuery.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { applyFiltersAndSort() }
+            override fun onTextChanged(
+                s: CharSequence?,
+                start: Int,
+                before: Int,
+                count: Int
+            ) {
+                searchRunnable?.let {
+                    searchHandler.removeCallbacks(it)
+                }
+                searchRunnable = Runnable {
+                    runSemanticSearch()
+                }
+                searchHandler.postDelayed(searchRunnable!!, 400)
+            }
             override fun afterTextChanged(s: Editable?) {}
         })
 
@@ -153,9 +198,10 @@ class SearchFragment : Fragment() {
         val query = etSearchQuery.text.toString().lowercase()
 
         allDocuments.forEach { doc ->
-            val matchesSearch = query.isEmpty() ||
-                    doc.title?.lowercase()?.contains(query) == true ||
-                    doc.courseCode?.lowercase()?.contains(query) == true
+            val matchesSearch =
+                query.isBlank() ||
+                        doc.title?.contains(query, ignoreCase = true) == true ||
+                        doc.courseCode?.contains(query, ignoreCase = true) == true
 
             val matchesCategory = currentCategory == "All Types" || doc.category?.equals(currentCategory, ignoreCase = true) == true
             val matchesSchool = currentSchool == "All Schools" || doc.school?.equals(currentSchool, ignoreCase = true) == true
@@ -265,6 +311,83 @@ class SearchFragment : Fragment() {
                     allDocuments.add(doc)
                 }
                 applyFiltersAndSort()
+
             }
+    }
+
+    private fun runSemanticSearch() {
+
+        val query =
+            etSearchQuery.text.toString().trim()
+
+        if (query.isBlank()) {
+            fetchDocuments()
+            return
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+
+            val orderedIds = withContext(Dispatchers.IO) {
+
+                val queryVector =
+                    semanticEmbedder.embedQuery(query)
+
+                searchRepository
+                    .search(queryVector)
+                    .map { it.id }
+            }
+
+            if (orderedIds.isNotEmpty()) {
+                loadDocumentsByIds(orderedIds)
+            } else {
+                applyFiltersAndSort()
+            }
+        }
+    }
+
+    private fun loadDocumentsByIds(ids: List<String>) {
+
+        if (ids.isEmpty()) {
+
+            allDocuments.clear()
+            applyFiltersAndSort()
+            return
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+
+            val docs = mutableListOf<Document>()
+
+            for (id in ids) {
+
+                try {
+
+                    val snap = db.collection("documents")
+                        .document(id)
+                        .get()
+                        .await()
+
+                    if (snap.exists()) {
+
+                        snap.toObject(Document::class.java)
+                            ?.copy(id = snap.id)
+                            ?.let {
+                                docs.add(it)
+                            }
+                    }
+
+                } catch (_: Exception) {
+
+                }
+            }
+
+            withContext(Dispatchers.Main) {
+
+                allDocuments.clear()
+                allDocuments.addAll(docs)
+
+                applyFiltersAndSort()
+            }
+        }
     }
 }

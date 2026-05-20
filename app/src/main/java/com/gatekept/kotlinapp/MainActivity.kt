@@ -1,6 +1,7 @@
 package com.gatekept.kotlinapp
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.ImageView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
@@ -79,6 +80,11 @@ class MainActivity : AppCompatActivity() {
             navHome.isSelected = true
             switchFragment(HomeFragment())
         }
+        Thread {
+            val embedder = SemanticEmbedder(this)
+            val testVector = embedder.embedQuery("Machine learning is awesome")
+            Log.d("GateKeptAI", "Vector generated! Size: ${testVector.size}, First value: ${testVector[0]}")
+        }.start()
     }
 
     private fun resetSelection() {

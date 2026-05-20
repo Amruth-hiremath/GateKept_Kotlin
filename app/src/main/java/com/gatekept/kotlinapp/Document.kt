@@ -22,5 +22,6 @@ data class Document(
     var uploaderName: String? = null,
     var upvotes: Int = 0,
     var timestamp: Timestamp? = null,
-    var uploaderUid: String? = null
+    var uploaderUid: String? = null,
+    val embedding: List<Float> = emptyList()
 )

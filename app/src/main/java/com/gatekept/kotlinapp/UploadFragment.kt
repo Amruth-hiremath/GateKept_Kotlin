@@ -3,8 +3,6 @@ package com.gatekept.kotlinapp
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
-import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
@@ -37,8 +35,6 @@ import nl.dionsegijn.konfetti.core.models.Shape
 import nl.dionsegijn.konfetti.xml.KonfettiView
 import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
-import java.net.URL
-import java.util.Arrays
 import java.util.Calendar
 import java.util.Date
 import java.util.concurrent.TimeUnit
@@ -207,6 +203,29 @@ class UploadFragment : Fragment() {
 
         Thread {
             try {
+                // PHASE 2: AI TEXT EXTRACTION & EMBEDDING
+                val documentEmbedding = try {
+
+                    val extractedText =
+                        PdfTextExtractor(requireContext())
+                            .extractTextFromUri(selectedFileUri!!)
+
+                    val semanticEmbedder =
+                        SemanticEmbedder(requireContext())
+
+                    semanticEmbedder.embedDocument(extractedText)
+
+                } catch (e: Exception) {
+
+                    android.util.Log.e(
+                        "GateKeptAI",
+                        "Embedding failed — continuing upload",
+                        e
+                    )
+
+                    emptyList()
+                }
+
                 val fileBytes: ByteArray = requireContext().contentResolver
                     .openInputStream(selectedFileUri!!)
                     ?.use { inputStream ->
@@ -242,7 +261,7 @@ class UploadFragment : Fragment() {
 
                 val downloadUrl = "${BuildConfig.R2_PUBLIC_URL.trim()}/$uniqueFileName"
                 requireActivity().runOnUiThread {
-                    saveMetadataToFirestore(courseName, courseCode, school, program, academicYear, examType, paperYear, downloadUrl)
+                    saveMetadataToFirestore(courseName, courseCode, school, program, academicYear, examType, paperYear, downloadUrl, documentEmbedding)
                 }
 
             } catch (e: Exception) {
@@ -258,7 +277,7 @@ class UploadFragment : Fragment() {
     private fun saveMetadataToFirestore(
         courseName: String, courseCode: String, school: String,
         program: String, academicYear: String, examType: String,
-        paperYear: String, fileUrl: String
+        paperYear: String, fileUrl: String, embedding: List<Float>
     ) {
         val category = if (chipGroupMaterial.checkedChipId == R.id.chipPyq) "PYQ" else "Notes"
         val generatedDescription = "$category for $courseName - $program $academicYear | $paperYear"
@@ -289,7 +308,8 @@ class UploadFragment : Fragment() {
             uploaderName = uploaderName,
             upvotes = 0,
             timestamp = Timestamp.now(),
-            uploaderUid = currentUser?.uid ?: ""
+            uploaderUid = currentUser?.uid ?: "",
+            embedding = embedding // THIS PASSES THE MATH TO FIRESTORE
         )
 
         db.collection("documents").add(newDoc).addOnSuccessListener {
