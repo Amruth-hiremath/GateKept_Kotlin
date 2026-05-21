@@ -82,8 +82,13 @@ class MainActivity : AppCompatActivity() {
         }
         Thread {
             val embedder = SemanticEmbedder(this)
+            Thread.sleep(2000)
             val testVector = embedder.embedQuery("Machine learning is awesome")
-            Log.d("GateKeptAI", "Vector generated! Size: ${testVector.size}, First value: ${testVector[0]}")
+            if (testVector.isNotEmpty()) {
+                Log.d("GateKeptAI", "Vector generated! Size: ${testVector.size}, First value: ${testVector[0]}")
+            } else {
+                Log.e("GateKeptAI", "Embedder not ready or model failed to load – vector is empty")
+            }
         }.start()
     }
 

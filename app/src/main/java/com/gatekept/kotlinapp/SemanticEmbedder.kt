@@ -2,130 +2,114 @@ package com.gatekept.kotlinapp
 
 import android.content.Context
 import android.util.Log
-import com.google.mediapipe.tasks.core.BaseOptions
-import com.google.mediapipe.tasks.text.textembedder.TextEmbedder
-import com.google.mediapipe.tasks.text.textembedder.TextEmbedder.TextEmbedderOptions
-import kotlin.math.sqrt
+import com.ml.shubham0204.sentence_embeddings.SentenceEmbedding
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import java.io.File
 
-class SemanticEmbedder(context: Context) {
+class SemanticEmbedder(private val context: Context) {
 
-    private var embedder: TextEmbedder? = null
+    private val sentenceEmbedding = SentenceEmbedding()
+    private val ready = CompletableDeferred<Boolean>()
+
     init {
-        try {
-            val baseOptions = BaseOptions.builder()
-                .setModelAssetPath("ml/universal_sentence_encoder.tflite")
-                .build()
-            val options = TextEmbedderOptions.builder()
-                .setBaseOptions(baseOptions)
-                .build()
-            embedder = TextEmbedder.createFromOptions(context, options)
-            Log.d(
-                "GateKeptAI",
-                "Semantic Embedder loaded successfully!"
-            )
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                loadModel()
+                ready.complete(true)
+            } catch (e: Exception) {
+                Log.e("GateKeptAI", "Model loading failed", e)
+                ready.completeExceptionally(e)
+            }
+        }
+    }
+
+    private suspend fun loadModel() {
+        // Copy model from assets to internal storage (ONNX Runtime needs a file path)
+        val modelFile = File(context.filesDir, "model.onnx")
+        if (!modelFile.exists()) {
+            context.assets.open("all-minilm-l6-v2/model.onnx").use { input ->
+                modelFile.outputStream().use { output -> input.copyTo(output) }
+            }
+        }
+
+        val tokenizerBytes = context.assets.open("all-minilm-l6-v2/tokenizer.json")
+            .use { it.readBytes() }
+
+        sentenceEmbedding.init(
+            modelFilepath = modelFile.absolutePath,
+            tokenizerBytes = tokenizerBytes,
+            useTokenTypeIds = true,
+            outputTensorName = "sentence_embedding",
+            useFP16 = false,
+            useXNNPack = false,
+            normalizeEmbeddings = true   // Required parameter – ensures L2-normalized output
+        )
+        Log.d("GateKeptAI", "MiniLM embedder ready (384 dims)")
+    }
+
+    /**
+     * Blocks the calling thread until the embedder is initialized.
+     * Called only from background (IO) threads.
+     */
+    private fun ensureReady(): Boolean {
+        return try {
+            runBlocking { ready.await() }
+            true
         } catch (e: Exception) {
-            Log.e(
-                "GateKeptAI",
-                "Error loading embedder",
-                e
-            )
+            Log.e("GateKeptAI", "Embedder initialization failed", e)
+            false
         }
     }
 
     fun embedQuery(query: String): FloatArray {
-        if (query.isBlank()) {
-            return FloatArray(0)
+        if (!ensureReady()) return FloatArray(0)
+        if (query.isBlank()) return FloatArray(0)
+        return try {
+            runBlocking { sentenceEmbedding.encode(query) }
+        } catch (e: Exception) {
+            Log.e("GateKeptAI", "Query encoding failed", e)
+            FloatArray(0)
         }
-        val result =
-            embedder?.embed(query)
-                ?: return FloatArray(0)
-        val embeddingsList =
-            result.embeddingResult().embeddings()
-        if (embeddingsList.isEmpty()) {
-            return FloatArray(0)
-        }
-        val rawEmbedding =
-            embeddingsList.first().floatEmbedding()
-                ?: return FloatArray(0)
-        return normalize(rawEmbedding)
     }
 
     fun embedDocument(text: String): List<Float> {
-        if (text.isBlank()) {
-            return emptyList()
-        }
-        // Clean text a bit more aggressively
+        if (!ensureReady()) return emptyList()
+        if (text.isBlank()) return emptyList()
+
         val cleanedText = text
-            .replace(Regex("[^A-Za-z0-9 ]"), " ")
             .replace(Regex("\\s+"), " ")
+            .replace(Regex("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]"), "")
             .trim()
-        if (cleanedText.isBlank()) {
-            return emptyList()
-        }
-        // Split into chunks
+        if (cleanedText.isBlank()) return emptyList()
+
         val words = cleanedText.split(" ")
-        val chunks = words
-            .chunked(300)
-            .map { it.joinToString(" ") }
-            .filter { it.length > 20 }
-        val chunkEmbeddings = mutableListOf<FloatArray>()
+        val chunks = words.chunked(256).map { it.joinToString(" ") }.filter { it.length > 10 }
+        if (chunks.isEmpty()) return emptyList()
+
+        val allEmbeddings = mutableListOf<FloatArray>()
         for (chunk in chunks) {
             try {
-                val result = embedder?.embed(chunk)
-                val embeddingsList =
-                    result?.embeddingResult()?.embeddings()
-                if (!embeddingsList.isNullOrEmpty()) {
-                    val floatArr =
-                        embeddingsList.first().floatEmbedding()
-                    if (floatArr != null) {
-                        val normalized =
-                            normalize(floatArr)
-                        chunkEmbeddings.add(normalized)
-                    }
-                }
+                val vec = runBlocking { sentenceEmbedding.encode(chunk) }
+                if (vec.isNotEmpty()) allEmbeddings.add(vec)
             } catch (e: Exception) {
-                Log.e(
-                    "GateKeptAI",
-                    "Chunk embedding failed",
-                    e
-                )
+                Log.e("GateKeptAI", "Chunk encoding failed", e)
             }
         }
-        if (chunkEmbeddings.isEmpty()) {
-            return emptyList()
-        }
-        val vectorDim = chunkEmbeddings.first().size
-        val meanEmbedding = FloatArray(vectorDim)
-        for (i in 0 until vectorDim) {
-            var sum = 0f
-            for (embedding in chunkEmbeddings) {
-                sum += embedding[i]
-            }
-            meanEmbedding[i] =
-                sum / chunkEmbeddings.size
-        }
-        val normalizedMean =
-            normalize(meanEmbedding)
-        Log.d(
-            "GateKeptAI",
-            "Generated embedding with dimension ${normalizedMean.size}"
-        )
-        return normalizedMean.toList()
-    }
 
-    private fun normalize(vector: FloatArray): FloatArray {
-        var magnitude = 0f
-        for (value in vector) {
-            magnitude += value * value
+        if (allEmbeddings.isEmpty()) return emptyList()
+
+        val dims = allEmbeddings.first().size
+        val mean = FloatArray(dims)
+        for (emb in allEmbeddings) {
+            for (i in 0 until dims) mean[i] += emb[i]
         }
-        magnitude = sqrt(magnitude)
-        if (magnitude == 0f) {
-            return vector
-        }
-        val normalized = FloatArray(vector.size)
-        for (i in vector.indices) {
-            normalized[i] = vector[i] / magnitude
-        }
-        return normalized
+        for (i in 0 until dims) mean[i] /= allEmbeddings.size.toFloat()
+
+        Log.d("GateKeptAI", "Document embedding ready: size=$dims")
+        return mean.toList()
     }
 }

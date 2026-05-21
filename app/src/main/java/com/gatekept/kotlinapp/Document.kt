@@ -23,5 +23,6 @@ data class Document(
     var upvotes: Int = 0,
     var timestamp: Timestamp? = null,
     var uploaderUid: String? = null,
-    val embedding: List<Float> = emptyList()
+    val embedding: List<Float> = emptyList(),
+    val contentSnippet: String? = null
 )

@@ -89,15 +89,12 @@ dependencies {
 
     // Confetti Animations
     implementation("nl.dionsegijn:konfetti-xml:2.0.2")
-
-    // Core TFLite
-    implementation("org.tensorflow:tensorflow-lite:2.16.1")
-    // The magic wrapper that handles Tokenization and Embedding automatically
-    implementation("com.google.mediapipe:tasks-text:latest.release")
     //PDF parsing
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     //GSON
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+
+    implementation("io.gitlab.shubham0204:sentence-embeddings:v6")
 }
