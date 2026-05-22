@@ -230,7 +230,95 @@ class SearchFragment : Fragment() {
         }
     }
 
-    private fun showBountyBottomSheet() { /* ... unchanged ... */ }
+    private fun showBountyBottomSheet() {
+
+        val dialog = BottomSheetDialog(requireContext())
+
+        val view = layoutInflater.inflate(
+            R.layout.dialog_post_bounty,
+            null
+        )
+
+        dialog.setContentView(view)
+
+        val etTopic =
+            view.findViewById<EditText>(R.id.etBountyTopic)
+
+        val etDetails =
+            view.findViewById<EditText>(R.id.etBountyDetails)
+
+        val btnSubmit =
+            view.findViewById<MaterialButton>(R.id.btnSubmitBounty)
+
+        btnSubmit.setOnClickListener {
+
+            val topic =
+                etTopic.text.toString().trim()
+
+            val details =
+                etDetails.text.toString().trim()
+
+            if (topic.isBlank() || details.isBlank()) {
+
+                Toast.makeText(
+                    requireContext(),
+                    "Please fill all fields",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                return@setOnClickListener
+            }
+
+            val currentUser =
+                FirebaseAuth.getInstance().currentUser
+
+            if (currentUser == null) {
+
+                Toast.makeText(
+                    requireContext(),
+                    "User not logged in",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                return@setOnClickListener
+            }
+
+            val bountyData = hashMapOf(
+                "topic" to topic,
+                "details" to details,
+                "requesterUid" to currentUser.uid,
+                "requesterName" to (
+                        currentUser.displayName ?: "Anonymous"
+                        ),
+                "status" to "OPEN",
+                "bountyPoints" to 100,
+                "timestamp" to com.google.firebase.Timestamp.now()
+            )
+
+            db.collection("requests")
+                .add(bountyData)
+                .addOnSuccessListener {
+
+                    Toast.makeText(
+                        requireContext(),
+                        "Bounty posted successfully",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    dialog.dismiss()
+                }
+                .addOnFailureListener { e ->
+
+                    Toast.makeText(
+                        requireContext(),
+                        "Failed: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+        }
+
+        dialog.show()
+    }
 
     private fun fetchDocuments() {
         // Remove previous listener to avoid stacking
